@@ -78,10 +78,11 @@ public class UserProfileService {
     public Map<String, Object> login(String email, String password) {
 
         UserProfile user = userProfileRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User doesn't exist"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Invalid password");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
         String token = jwtUtil.generateToken(user.getEmail());

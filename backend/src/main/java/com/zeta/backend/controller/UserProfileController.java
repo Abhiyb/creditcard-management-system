@@ -33,7 +33,8 @@ public class UserProfileController {
         String email = credentials.get("email");
         String password = credentials.get("password");
 
-        return ResponseEntity.ok(userProfileService.login(email, password));
+        return ResponseEntity.status(200)
+                .body(userProfileService.login(email, password));
     }
 
     // ========================== GET MY PROFILE ==========================
