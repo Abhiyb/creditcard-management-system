@@ -231,7 +231,7 @@ const fetchCards = async () => {
   error.value = null
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/cards/me`, {
+    const response = await fetch(`${API_BASE_URL}/cards/me`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -280,7 +280,7 @@ const toggleCardStatus = async (card) => {
 
   try {
     const token = getAuthToken()
-    const response = await fetch(`${API_BASE_URL}/api/cards/${card.cardId}/status?status=${newStatus}`, {
+    const response = await fetch(`${API_BASE_URL}/cards/${card.cardId}/status?status=${newStatus}`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -331,7 +331,7 @@ const updateCardLimit = async ({ cardId, newLimit }) => {
 
   try {
     const token = getAuthToken()
-    const response = await fetch(`${API_BASE_URL}/api/cards/${cardId}/limit?newLimit=${newLimit}`, {
+    const response = await fetch(`${API_BASE_URL}/cards/${cardId}/limit?newLimit=${newLimit}`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${token}` }
     })

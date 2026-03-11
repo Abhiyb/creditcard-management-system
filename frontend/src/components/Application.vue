@@ -150,7 +150,7 @@ const fetchApplications = async () => {
   errorMsg.value = null
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/cards/applications/me`, {
+    const response = await fetch(`${API_BASE_URL}/cards/applications/me`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }

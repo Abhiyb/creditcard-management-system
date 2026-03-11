@@ -1053,7 +1053,7 @@ const checkEligibility = async () => {
       isBNPL: false
     };
 
-    const response = await fetch(`${API_BASE_URL}/api/transactions/validate-card`, {
+    const response = await fetch(`${API_BASE_URL}/transactions/validate-card`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1114,8 +1114,8 @@ const confirmTransaction = async () => {
 
   try {
     const endpoint = transaction.value.isBNPL 
-      ? `${API_BASE_URL}/api/transactions/bnpl?plan=${planMapping[selectedPlan.value.months]}`
-      : `${API_BASE_URL}/api/transactions`;
+      ? `${API_BASE_URL}/transactions/bnpl?plan=${planMapping[selectedPlan.value.months]}`
+      : `${API_BASE_URL}/transactions`;
     
     const response = await fetch(endpoint, {
       method: 'POST',

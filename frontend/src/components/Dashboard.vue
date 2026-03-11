@@ -150,7 +150,7 @@ const fetchDashboardData = async () => {
 
   try {
     // 1. Get my cards - /api/cards/me
-    const cardsRes = await fetch(`${API_BASE_URL}/api/cards/me`, { headers });
+    const cardsRes = await fetch(`${API_BASE_URL}/cards/me`, { headers });
     if (!cardsRes.ok) {
       if (cardsRes.status === 401) throw new Error('unauthorized');
       throw new Error('Failed to load cards');
@@ -172,7 +172,7 @@ const fetchDashboardData = async () => {
     }
 
     // 2. Get my applications - /api/cards/applications/me
-    const appsRes = await fetch(`${API_BASE_URL}/api/cards/applications/me`, { headers });
+    const appsRes = await fetch(`${API_BASE_URL}/cards/applications/me`, { headers });
     if (appsRes.ok) {
       const apps = await appsRes.json();
       dashboardData.value.pendingApplications = apps.filter(a => 
@@ -183,7 +183,7 @@ const fetchDashboardData = async () => {
     // 3. Transactions this month - loop over cards
     let txCount = 0;
     for (const card of cards) {
-      const txRes = await fetch(`${API_BASE_URL}/api/transactions/card/${card.cardId}`, { headers });
+      const txRes = await fetch(`${API_BASE_URL}/transactions/card/${card.cardId}`, { headers });
       if (txRes.ok) {
         const txs = await txRes.json();
         const now = new Date();

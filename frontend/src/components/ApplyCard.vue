@@ -224,7 +224,7 @@ const submitApplication = async () => {
     }
 
     const response = await axios.post(
-      `${API_BASE_URL}/api/cards/apply`,
+      `${API_BASE_URL}/cards/apply`,
       payload,
       {
         headers: {
