@@ -365,7 +365,7 @@ const handleLogin = async () => {
   isLoading.value = true;
 
   try {
-    const response = await axios.post(`${API_BASE_URL}/api/profile/login`, {
+    const response = await axios.post(`${API_BASE_URL}/profile/login`, {
       email: loginForm.email,
       password: loginForm.password
     });
@@ -412,7 +412,7 @@ const handleForgotPassword = async () => {
 
   isLoading.value = true;
   try {
-    await axios.post(`${API_BASE_URL}/api/auth/forgot-password`, {
+    await axios.post(`${API_BASE_URL}/auth/forgot-password`, {
       email: forgotPasswordForm.email
     });
     showOtpForm.value = true;
@@ -430,7 +430,7 @@ const handleVerifyOtp = async () => {
 
   isLoading.value = true;
   try {
-    await axios.post(`${API_BASE_URL}/api/auth/verify-otp`, {
+    await axios.post(`${API_BASE_URL}/auth/verify-otp`, {
       email: forgotPasswordForm.email,
       otp: forgotPasswordForm.otp
     });
@@ -454,7 +454,7 @@ const handleResetPassword = async () => {
 
   isLoading.value = true;
   try {
-    await axios.post(`${API_BASE_URL}/api/auth/reset-password`, {
+    await axios.post(`${API_BASE_URL}/auth/reset-password`, {
       email: forgotPasswordForm.email,
       newPassword: resetPasswordForm.newPassword
     });
