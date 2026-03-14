@@ -369,7 +369,7 @@ const updateProfile = async () => {
   updating.value = true;
   try {
     const token = getAuthToken();
-    const response = await fetch(`${API_BASE_URL}/api/profile/me`, {
+    const response = await fetch(`${API_BASE_URL}/profile/me`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -417,7 +417,7 @@ const fetchProfile = async () => {
   error.value = null;
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/profile/me`, {
+    const response = await fetch(`${API_BASE_URL}/profile/me`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
