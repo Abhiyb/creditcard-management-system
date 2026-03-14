@@ -8,7 +8,7 @@
           <p class="text-sm opacity-80">Flexible payment options for your purchases</p>
         </div>
         <button
-          @click="$router.push('/dashboard')"
+          @click="$router.push('/card')"
           class="px-5 py-2.5 bg-white text-primary rounded-xl hover:bg-gray-100 transition-colors w-full sm:w-auto font-medium"
           aria-label="Back to Dashboard"
         >
