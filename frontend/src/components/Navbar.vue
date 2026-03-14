@@ -9,9 +9,7 @@
         <div class="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center">
           <span class="text-white font-bold text-lg">C</span>
         </div>
-        
         <router-link to="/dashboard" class="text-xl font-bold text-gray-800">Credify</router-link>
-
       </div>
 
       <!-- Desktop Navigation -->
@@ -33,11 +31,14 @@
           <button
             @click="toggleDropdown"
             class="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 rounded-full px-4 py-2 transition-colors duration-200"
+            :disabled="isLoadingUser"
           >
             <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600">
               <User class="w-4 h-4" />
             </div>
-            <span class="text-sm font-medium text-gray-700">{{ userName }}</span>
+            <span class="text-sm font-medium text-gray-700">
+              {{ isLoadingUser ? '...' : userName || 'User' }}
+            </span>
             <ChevronDown class="w-4 h-4 text-gray-600" />
           </button>
 
@@ -119,7 +120,12 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { User, LogOut, ChevronDown, Menu, X } from 'lucide-vue-next';
 
-// Props
+// ───────────────────────────────────────────────
+//   IMPORTANT: Change this to match your real backend URL
+// ───────────────────────────────────────────────
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://creditcard-management-system.vercel.app';
+
+// Props (if you still use it)
 const props = defineProps({
   title: {
     type: String,
@@ -127,11 +133,9 @@ const props = defineProps({
   }
 });
 
-// Router
 const router = useRouter();
 const route = useRoute();
 
-// Navigation items
 const navItems = [
   { name: 'Home', route: '/dashboard' },
   { name: 'My Cards', route: '/card' },
@@ -145,21 +149,65 @@ const isDropdownOpen = ref(false);
 const isMobileMenuOpen = ref(false);
 const showToast = ref(false);
 const toastMessage = ref('');
-const userName = ref('');
+const userName = ref('...');           // better default than empty
+const isLoadingUser = ref(true);        // to show loading state
 
-// Get user name from localStorage
-const getUserName = () => {
-  try {
-    const fullName = localStorage.getItem('fullName');
-    console.log('Full Name from localStorage:', localStorage);
-    userName.value = fullName || 'Guest';
-  } catch (err) {
-    console.error('Error reading fullName from localStorage:', err);
+// ───────────────────────────────────────────────
+//   Get auth token helper
+// ───────────────────────────────────────────────
+const getAuthToken = () => {
+  return localStorage.getItem('authToken') || '';
+};
+
+// ───────────────────────────────────────────────
+//   Fetch real name from /profile/me using token
+// ───────────────────────────────────────────────
+const fetchUserProfile = async () => {
+  const token = getAuthToken();
+
+  // No token → guest
+  if (!token) {
     userName.value = 'Guest';
+    isLoadingUser.value = false;
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/profile/me`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      // If 401/403 → token invalid → logout
+      if (response.status === 401 || response.status === 403) {
+        handleLogoutClick();
+        return;
+      }
+      throw new Error(`Profile fetch failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Set real name
+    userName.value = data.fullName || data.name || 'User';
+
+    // Optional: store it so next page loads are instant (but still fetch to be fresh)
+    localStorage.setItem('fullName', userName.value);
+  } catch (err) {
+    console.error('Failed to fetch user profile:', err);
+    userName.value = 'User';
+  } finally {
+    isLoadingUser.value = false;
   }
 };
 
-// Navigation functions
+// ───────────────────────────────────────────────
+//   Navigation & UI handlers (unchanged)
+// ───────────────────────────────────────────────
 const handleNavClick = (item) => {
   isMobileMenuOpen.value = false;
   isDropdownOpen.value = false;
@@ -179,7 +227,7 @@ const handleLogoutClick = () => {
   localStorage.removeItem('currentUser');
   localStorage.removeItem('authToken');
 
-  userName.value = 'Guest'; // Reset userName immediately
+  userName.value = 'Guest';
   showToastMessage('Logged out successfully');
 
   setTimeout(() => {
@@ -190,7 +238,6 @@ const handleLogoutClick = () => {
   isMobileMenuOpen.value = false;
 };
 
-// Utility functions
 const toggleDropdown = () => {
   isDropdownOpen.value = !isDropdownOpen.value;
   isMobileMenuOpen.value = false;
@@ -209,26 +256,27 @@ const showToastMessage = (message) => {
   }, 3000);
 };
 
-// Handle scroll for background change
+// Scroll handler
 const handleScroll = () => {
   scrolled.value = window.scrollY > 50;
 };
 
-// Close dropdowns when clicking outside
+// Click outside to close dropdown
 const handleClickOutside = (event) => {
   if (!event.target.closest('.relative')) {
     isDropdownOpen.value = false;
   }
 };
 
-// Initialize component
+// ───────────────────────────────────────────────
+//   Lifecycle
+// ───────────────────────────────────────────────
 onMounted(() => {
-  getUserName();
+  fetchUserProfile();                     // ← This is the key change
   window.addEventListener('scroll', handleScroll);
   document.addEventListener('click', handleClickOutside);
 });
 
-// Cleanup
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
   document.removeEventListener('click', handleClickOutside);
