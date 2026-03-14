@@ -12,7 +12,7 @@
           class="px-5 py-2.5 bg-white text-primary rounded-xl hover:bg-gray-100 transition-colors w-full sm:w-auto font-medium"
           aria-label="Back to Dashboard"
         >
-          Back to Dashboard
+          Back to Cards
         </button>
       </div>
 
