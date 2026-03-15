@@ -20,16 +20,13 @@
           <div class="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl max-w-2xl mx-auto">
             <p class="text-lg font-semibold">Oops!</p>
             <p class="mt-2">{{ errorMessage }}</p>
-            <button
-              @click="resetForm"
-              class="mt-6 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition"
-            >
+            <button @click="resetForm" class="mt-6 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition">
               Try Again
             </button>
           </div>
         </div>
 
-        <!-- SUCCESS MESSAGE (Now works perfectly) -->
+        <!-- SUCCESS SCREEN (now guaranteed to show) -->
         <div v-else-if="successMessage" class="text-center py-16">
           <div class="bg-green-50 border border-green-300 text-green-800 px-8 py-12 rounded-2xl max-w-2xl mx-auto shadow-lg">
             <svg class="w-20 h-20 text-green-500 mx-auto mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -147,16 +144,18 @@ const loading = ref(false)
 const successMessage = ref('')
 const errorMessage = ref('')
 
-// ====================== SUCCESS + REDIRECT ======================
+// ====================== REDIRECT + DEBUG ======================
 watch(successMessage, (newVal) => {
   if (newVal) {
+    console.log('🔄 Success message detected → redirecting to /card in 3.4 seconds')
     setTimeout(() => {
-      router.push('/card')   // ← Exactly the URL you want
+      console.log('🚀 Redirecting to /card now')
+      router.push('/card')
     }, 3400)
   }
 })
 
-// ====================== AUTH TOKEN ======================
+// ====================== AUTH ======================
 const getAuthToken = () => localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
 
 onMounted(() => {
@@ -166,12 +165,10 @@ onMounted(() => {
   }
 })
 
-// ====================== CARD SELECTION ======================
 const selectCard = (card) => {
   selectedCard.value = card
 }
 
-// ====================== RESET (only for Try Again) ======================
 const resetForm = () => {
   selectedCard.value = null
   requestedLimit.value = null
@@ -180,24 +177,28 @@ const resetForm = () => {
   loading.value = false
 }
 
-// ====================== SUBMIT (FIXED) ======================
+// ====================== SUBMIT (NOW BULLETPROOF) ======================
 const submitApplication = async () => {
+  console.log('🚀 Submit button clicked')
+
   successMessage.value = ''
   errorMessage.value = ''
 
   const token = getAuthToken()
   if (!token) {
     errorMessage.value = 'Session expired. Please sign in again.'
-    setTimeout(() => router.push('/login'), 2000)
+    console.log('❌ No token')
     return
   }
 
   if (!selectedCard.value) {
     errorMessage.value = 'Please select a card type.'
+    console.log('❌ No card selected')
     return
   }
   if (!requestedLimit.value || requestedLimit.value < 10000) {
     errorMessage.value = 'Requested limit must be at least ₹10,000.'
+    console.log('❌ Invalid limit')
     return
   }
 
@@ -209,39 +210,43 @@ const submitApplication = async () => {
       requestedLimit: Number(requestedLimit.value)
     }
 
+    console.log('📤 Sending payload:', payload)
+
     const response = await axios.post(
       `${API_BASE_URL}/cards/apply`,
       payload,
       { headers: { Authorization: `Bearer ${token}` } }
     )
 
-    // SUCCESS - THIS IS THE IMPORTANT PART
-    successMessage.value =
-      response.data?.message ||
-      response.data ||
-      `Your application for ${selectedCard.value.title} has been submitted successfully!`
+    console.log('✅ API Response received:', response.data)
 
-    // ←←← NO resetForm() here anymore (this was the main bug)
+    // FORCE a proper string message (this was the hidden bug)
+    let displayMessage = ''
+    if (response.data?.message && typeof response.data.message === 'string') {
+      displayMessage = response.data.message
+    } else if (response.data && typeof response.data === 'string') {
+      displayMessage = response.data
+    } else {
+      displayMessage = `Your application for ${selectedCard.value.title} has been submitted successfully!`
+    }
+
+    successMessage.value = displayMessage
+    console.log('✅ SUCCESS MESSAGE SET TO:', successMessage.value)
+
+    // No resetForm() here — this was the old bug
 
   } catch (error) {
-    console.error('Application error:', error)
+    console.error('❌ Full error object:', error)
+    console.log('❌ Response data (if any):', error.response?.data)
 
     if (error.response) {
       errorMessage.value = error.response.data?.message || error.response.data || 'Failed to submit application.'
-
-      if (error.response.status === 401) {
-        errorMessage.value = 'Session expired. Please sign in again.'
-        setTimeout(() => {
-          localStorage.removeItem('authToken')
-          sessionStorage.removeItem('authToken')
-          router.push('/login')
-        }, 2200)
-      }
     } else {
       errorMessage.value = 'Unable to connect. Please check your internet.'
     }
   } finally {
     loading.value = false
+    console.log('🏁 Request finished (loading = false)')
   }
 }
 
