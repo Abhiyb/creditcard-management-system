@@ -26,7 +26,7 @@
           </div>
         </div>
 
-        <!-- SUCCESS SCREEN (now guaranteed to show) -->
+        <!-- Success -->
         <div v-else-if="successMessage" class="text-center py-16">
           <div class="bg-green-50 border border-green-300 text-green-800 px-8 py-12 rounded-2xl max-w-2xl mx-auto shadow-lg">
             <svg class="w-20 h-20 text-green-500 mx-auto mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -38,7 +38,7 @@
           </div>
         </div>
 
-        <!-- Card Selection & Form -->
+        <!-- Form -->
         <div v-else>
           <h3 class="text-2xl font-semibold text-gray-800 mb-6 text-center md:text-left">
             Select Your Card Type
@@ -104,11 +104,11 @@
             <p class="text-sm text-gray-500 mt-2">Minimum requested limit: ₹10,000</p>
           </div>
 
-          <!-- Submit Button -->
-          <div class="mt-12 flex justify-center md:justify-start">
+          <!-- Submit -->
+          <div class="mt-12 flex justify-center md:justify-start gap-4">
             <button
               @click="submitApplication"
-              :disabled="loading || !selectedCard || !requestedLimit || requestedLimit < 10000"
+              :disabled="loading || !selectedCard || requestedLimit < 10000"
               class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-10 py-4 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
             >
               <span v-if="loading">Submitting...</span>
@@ -116,6 +116,15 @@
               <svg v-if="!loading" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
+            </button>
+
+            <!-- Optional temporary debug button – remove later -->
+            <button
+              type="button"
+              @click="console.log('Debug: button click works')"
+              class="bg-gray-700 hover:bg-gray-800 text-white px-6 py-3 rounded-lg text-base"
+            >
+              Debug Click
             </button>
           </div>
         </div>
@@ -133,29 +142,28 @@ const router = useRouter()
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const cards = ref([
-  { id: 1, cardType: 'VISA', title: 'Visa Signature', description: 'Global acceptance with premium rewards & travel benefits' },
-  { id: 2, cardType: 'MASTERCARD', title: 'World Elite Mastercard', description: 'Exclusive perks, airport lounge access & high rewards' },
-  { id: 3, cardType: 'AMEX', title: 'American Express Platinum', description: 'Premium service, concierge & luxury benefits' },
+  { id: 1, cardType: 'VISA',       title: 'Visa Signature',                  description: 'Global acceptance with premium rewards & travel benefits' },
+  { id: 2, cardType: 'MASTERCARD', title: 'World Elite Mastercard',         description: 'Exclusive perks, airport lounge access & high rewards' },
+  { id: 3, cardType: 'AMEX',       title: 'American Express Platinum',      description: 'Premium service, concierge & luxury benefits' },
 ])
 
-const selectedCard = ref(null)
-const requestedLimit = ref(null)
-const loading = ref(false)
-const successMessage = ref('')
-const errorMessage = ref('')
+const selectedCard    = ref(null)
+const requestedLimit  = ref(0)          // ← Important fix: number instead of null
+const loading         = ref(false)
+const successMessage  = ref('')
+const errorMessage    = ref('')
 
-// ====================== REDIRECT + DEBUG ======================
+// Redirect when success appears
 watch(successMessage, (newVal) => {
   if (newVal) {
-    console.log('🔄 Success message detected → redirecting to /card in 3.4 seconds')
+    console.log('Success message shown → redirect in 3 seconds')
     setTimeout(() => {
-      console.log('🚀 Redirecting to /card now')
+      console.log('Redirecting now → /card')
       router.push('/card')
-    }, 3400)
+    }, 3000)
   }
 })
 
-// ====================== AUTH ======================
 const getAuthToken = () => localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
 
 onMounted(() => {
@@ -170,35 +178,32 @@ const selectCard = (card) => {
 }
 
 const resetForm = () => {
-  selectedCard.value = null
-  requestedLimit.value = null
+  selectedCard.value   = null
+  requestedLimit.value = 0
   successMessage.value = ''
-  errorMessage.value = ''
-  loading.value = false
+  errorMessage.value   = ''
+  loading.value        = false
 }
 
-// ====================== SUBMIT (NOW BULLETPROOF) ======================
 const submitApplication = async () => {
-  console.log('🚀 Submit button clicked')
+  console.log('Submit button clicked')
 
   successMessage.value = ''
-  errorMessage.value = ''
+  errorMessage.value   = ''
 
   const token = getAuthToken()
   if (!token) {
     errorMessage.value = 'Session expired. Please sign in again.'
-    console.log('❌ No token')
     return
   }
 
   if (!selectedCard.value) {
     errorMessage.value = 'Please select a card type.'
-    console.log('❌ No card selected')
     return
   }
-  if (!requestedLimit.value || requestedLimit.value < 10000) {
+
+  if (requestedLimit.value < 10000) {
     errorMessage.value = 'Requested limit must be at least ₹10,000.'
-    console.log('❌ Invalid limit')
     return
   }
 
@@ -207,10 +212,10 @@ const submitApplication = async () => {
   try {
     const payload = {
       cardType: selectedCard.value.cardType,
-      requestedLimit: Number(requestedLimit.value)
+      requestedLimit: requestedLimit.value
     }
 
-    console.log('📤 Sending payload:', payload)
+    console.log('Sending payload:', payload)
 
     const response = await axios.post(
       `${API_BASE_URL}/cards/apply`,
@@ -218,52 +223,37 @@ const submitApplication = async () => {
       { headers: { Authorization: `Bearer ${token}` } }
     )
 
-    console.log('✅ API Response received:', response.data)
+    console.log('API success:', response.data)
 
-    // FORCE a proper string message (this was the hidden bug)
-    let displayMessage = ''
-    if (response.data?.message && typeof response.data.message === 'string') {
-      displayMessage = response.data.message
-    } else if (response.data && typeof response.data === 'string') {
-      displayMessage = response.data
-    } else {
-      displayMessage = `Your application for ${selectedCard.value.title} has been submitted successfully!`
-    }
-
-    successMessage.value = displayMessage
-    console.log('✅ SUCCESS MESSAGE SET TO:', successMessage.value)
-
-    // No resetForm() here — this was the old bug
+    successMessage.value =
+      response.data?.message ||
+      response.data?.success ||
+      'Your card application has been submitted successfully!'
 
   } catch (error) {
-    console.error('❌ Full error object:', error)
-    console.log('❌ Response data (if any):', error.response?.data)
-
-    if (error.response) {
-      errorMessage.value = error.response.data?.message || error.response.data || 'Failed to submit application.'
-    } else {
-      errorMessage.value = 'Unable to connect. Please check your internet.'
-    }
+    console.error('Submit failed:', error)
+    errorMessage.value =
+      error.response?.data?.message ||
+      error.response?.data ||
+      'Failed to submit application. Please try again.'
   } finally {
     loading.value = false
-    console.log('🏁 Request finished (loading = false)')
   }
 }
 
-// Card styling (unchanged)
 const getCardBackground = (type) => {
   const t = (type || '').toUpperCase()
-  if (t.includes('VISA')) return 'background: linear-gradient(135deg, #1e40af, #3b82f6)'
-  if (t.includes('MASTER')) return 'background: linear-gradient(135deg, #dc2626, #f97316)'
-  if (t.includes('AMEX')) return 'background: linear-gradient(135deg, #059669, #10b981)'
+  if (t.includes('VISA'))    return 'background: linear-gradient(135deg, #1e40af, #3b82f6)'
+  if (t.includes('MASTER'))  return 'background: linear-gradient(135deg, #dc2626, #f97316)'
+  if (t.includes('AMEX'))    return 'background: linear-gradient(135deg, #059669, #10b981)'
   return 'background: linear-gradient(135deg, #4f46e5, #7c3aed)'
 }
 
 const getCardLogoText = (type) => {
   const t = (type || '').toUpperCase()
-  if (t.includes('VISA')) return 'VISA'
-  if (t.includes('MASTER')) return 'Mastercard'
-  if (t.includes('AMEX')) return 'AMEX'
+  if (t.includes('VISA'))    return 'VISA'
+  if (t.includes('MASTER'))  return 'Mastercard'
+  if (t.includes('AMEX'))    return 'AMEX'
   return 'CARD'
 }
 </script>
