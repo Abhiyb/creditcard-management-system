@@ -792,7 +792,7 @@ const checkEligibility = async () => {
       category: transaction.value.category,
       merchantName: transaction.value.merchantName
     }
-    const res = await fetch(`${API_BASE_URL}/api/transactions/validate-card`, {
+    const res = await fetch(`${API_BASE_URL}/transactions/validate-card`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(payload)
@@ -824,7 +824,7 @@ const confirmTransaction = async () => {
   try {
     let url = `${API_BASE_URL}/api/transactions`
     if (selectedPaymentMethod.value === 'bnpl' && selectedPlan.value) {
-      url = `${API_BASE_URL}/api/transactions/bnpl?plan=${planMapping[selectedPlan.value.months]}`
+      url = `${API_BASE_URL}/transactions/bnpl?plan=${planMapping[selectedPlan.value.months]}`
     }
     const res = await fetch(url, {
       method: 'POST',
@@ -850,7 +850,7 @@ const fetchInstallments = async () => {
   if (!searchTransactionId.value) return
   loading.value = true
   try {
-    const res = await fetch(`${API_BASE_URL}/api/bnpl/installments/transaction/${searchTransactionId.value}`, {
+    const res = await fetch(`${API_BASE_URL}/bnpl/installments/transaction/${searchTransactionId.value}`, {
       headers: { Authorization: `Bearer ${getAuthToken()}` }
     })
     const data = await res.json()
@@ -865,7 +865,7 @@ const fetchInstallments = async () => {
 const fetchTransactions = async () => {
   loading.value = true
   try {
-    const res = await fetch(`${API_BASE_URL}/api/transactions`, {
+    const res = await fetch(`${API_BASE_URL}/transactions`, {
       headers: { Authorization: `Bearer ${getAuthToken()}` }
     })
     const data = await res.json()
@@ -881,7 +881,7 @@ const fetchTransactions = async () => {
 const payInstallment = async (inst) => {
   loading.value = true
   try {
-    const res = await fetch(`${API_BASE_URL}/api/bnpl/installments/${inst.id}/pay?amount=${inst.amount}`, {
+    const res = await fetch(`${API_BASE_URL}/bnpl/installments/${inst.id}/pay?amount=${inst.amount}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${getAuthToken()}` }
     })
