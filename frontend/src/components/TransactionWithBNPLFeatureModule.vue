@@ -1,732 +1,611 @@
 <template>
-  <div class="min-h-screen bg-gray-50 p-4 md:p-8">
-    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
-      <!-- Header -->
-      <div class="bg-primary text-white p-6 flex justify-between items-center">
-        <div>
-          <h1 class="text-2xl font-bold">Buy Now Pay Later</h1>
-          <p class="text-sm opacity-80">Flexible payment options for your purchases</p>
+  <div class="min-h-screen bg-gray-50 p-4 md:p-8 font-sans">
+    <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+      <!-- Header - Banking style -->
+      <div class="bg-gradient-to-r from-blue-700 to-indigo-700 text-white p-6 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">💳</div>
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight">BNPL Payments</h1>
+            <p class="text-sm opacity-90">Secure • Flexible • Instant</p>
+          </div>
         </div>
         <button
           @click="$router.push('/dashboard')"
-          class="px-4 py-2 bg-white text-primary rounded-md hover:bg-gray-100 transition-colors"
+          class="flex items-center gap-2 px-5 py-2.5 bg-white text-blue-700 rounded-2xl font-medium hover:bg-gray-100 transition-all active:scale-95"
           aria-label="Back to Dashboard"
         >
-          Back to Dashboard
+          <span>←</span>
+          <span>Dashboard</span>
         </button>
       </div>
 
-      <!-- Step indicator -->
-      <div class="px-6 pt-6">
-        <div class="flex items-center justify-between mb-8" role="navigation" aria-label="BNPL process steps">
-          <div v-for="(step, index) in steps" :key="index" class="flex flex-col items-center flex-1">
+      <!-- Step Indicator - Clickable for previous steps -->
+      <div class="px-8 pt-8 pb-4">
+        <div class="flex items-center justify-between" role="navigation" aria-label="BNPL Process">
+          <div
+            v-for="(stepName, index) in steps"
+            :key="index"
+            class="flex flex-col items-center flex-1 relative cursor-pointer"
+            :class="{ 'opacity-40 pointer-events-none': index > currentStep }"
+            @click="goToStep(index)"
+          >
+            <!-- Circle -->
             <div
-              :class="`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep >= index ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'}`"
+              class="w-9 h-9 rounded-2xl flex items-center justify-center text-sm font-semibold transition-all"
+              :class="[
+                currentStep >= index
+                  ? 'bg-blue-700 text-white shadow-md'
+                  : 'bg-gray-200 text-gray-400'
+              ]"
               :aria-current="currentStep === index ? 'step' : undefined"
-              :aria-label="`Step ${index + 1}: ${step}`"
             >
               {{ index + 1 }}
             </div>
-            <div class="text-xs mt-2 text-center" :class="currentStep >= index ? 'text-primary' : 'text-gray-500'">
-              {{ step }}
+
+            <!-- Label -->
+            <div
+              class="text-xs mt-3 font-medium text-center max-w-[90px]"
+              :class="currentStep >= index ? 'text-blue-700' : 'text-gray-400'"
+            >
+              {{ stepName }}
             </div>
-            <div class="hidden md:block h-1 bg-gray-200 mt-4" :class="index === steps.length - 1 ? 'w-full' : 'w-full'">
+
+            <!-- Line -->
+            <div
+              v-if="index < steps.length - 1"
+              class="absolute top-4 left-[50%] w-[calc(100%-2.25rem)] h-0.5 bg-gray-200 -z-10"
+            >
               <div
-                class="h-full bg-primary transition-all duration-300"
-                :style="`width: ${currentStep > index ? '100%' : '0%'}`"
-              ></div>
-            </div>
-            <div v-if="index < steps.length - 1" class="block md:hidden w-8 h-1 bg-gray-200 mt-2">
-              <div
-                class="h-full bg-primary transition-all duration-300"
-                :style="`width: ${currentStep > index ? '100%' : '0%'}`"
+                class="h-full bg-blue-700 transition-all duration-300"
+                :style="{ width: currentStep > index ? '100%' : '0%' }"
               ></div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Main content area -->
-      <div class="p-6">
-        <!-- Error Notification -->
-        <div v-if="errorMessage" class="bg-red-50 border border-red-200 rounded-md p-4 mb-6 text-sm text-red-700">
-          {{ errorMessage }}
+      <!-- Main Content -->
+      <div class="p-8">
+        <!-- Global Error -->
+        <div
+          v-if="errorMessage"
+          class="mb-6 bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl text-sm flex items-start gap-3"
+        >
+          <span class="text-xl">⚠️</span>
+          <span>{{ errorMessage }}</span>
         </div>
 
-        <!-- Step 1: Transaction Form -->
-        <div v-if="currentStep === 0" class="space-y-6">
-          <h2 class="text-xl font-semibold text-gray-800">Transaction Details</h2>
+        <!-- ===================== STEP 0: Transaction Details ===================== -->
+        <div v-if="currentStep === 0" class="space-y-8">
+          <div class="flex items-center justify-between">
+            <h2 class="text-2xl font-semibold text-gray-900">Transaction Details</h2>
+            <span class="text-xs bg-amber-100 text-amber-700 px-3 py-1 rounded-xl">All fields mandatory</span>
+          </div>
+
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Card Number -->
             <div class="space-y-2 md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700">Card Number</label>
+              <label class="block text-sm font-medium text-gray-700">
+                Card Number <span class="text-red-500">*</span>
+              </label>
               <input
                 v-model="transaction.cardNumber"
                 type="text"
                 maxlength="19"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary"
+                class="w-full px-5 py-3.5 border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-lg"
                 placeholder="1234 5678 9012 3456"
-                required
+                @input="formatCardNumber"
               />
             </div>
+
+            <!-- CVV -->
             <div class="space-y-2">
-              <label class="block text-sm font-medium text-gray-700">CVV</label>
+              <label class="block text-sm font-medium text-gray-700">
+                CVV <span class="text-red-500">*</span>
+              </label>
               <input
                 v-model="transaction.cvv"
                 type="password"
                 maxlength="4"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary"
-                placeholder="123 or 1234"
-                required
+                class="w-full px-5 py-3.5 border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                placeholder="123"
               />
             </div>
+
+            <!-- Expiry -->
             <div class="space-y-2">
-              <label class="block text-sm font-medium text-gray-700">Expiry Date (MM/YY)</label>
-              <div class="flex gap-4">
+              <label class="block text-sm font-medium text-gray-700">
+                Expiry Date (MM/YY) <span class="text-red-500">*</span>
+              </label>
+              <div class="flex gap-3">
                 <input
                   v-model="transaction.expiryMonth"
                   type="text"
                   maxlength="2"
+                  class="w-1/2 px-5 py-3.5 border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-center"
                   placeholder="MM"
-                  class="w-20 px-4 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary"
-                  required
                 />
-                <span class="self-center text-gray-500">/</span>
+                <span class="self-center text-gray-400 text-xl">/</span>
                 <input
                   v-model="transaction.expiryYear"
                   type="text"
                   maxlength="2"
+                  class="w-1/2 px-5 py-3.5 border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-center"
                   placeholder="YY"
-                  class="w-20 px-4 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary"
-                  required
                 />
               </div>
             </div>
+
+            <!-- Amount -->
             <div class="space-y-2">
-              <label class="block text-sm font-medium text-gray-700">Amount (₹)</label>
-              <input
-                v-model.number="transaction.amount"
-                type="number"
-                step="0.01"
-                min="1"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary"
-                placeholder="Enter amount"
-                required
-              />
+              <label class="block text-sm font-medium text-gray-700">
+                Amount (₹) <span class="text-red-500">*</span>
+              </label>
+              <div class="relative">
+                <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 text-xl">₹</span>
+                <input
+                  v-model.number="transaction.amount"
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  class="w-full pl-10 pr-5 py-3.5 border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                  placeholder="5000.00"
+                />
+              </div>
             </div>
+
+            <!-- Category -->
             <div class="space-y-2">
-              <label class="block text-sm font-medium text-gray-700">Category</label>
+              <label class="block text-sm font-medium text-gray-700">
+                Category <span class="text-red-500">*</span>
+              </label>
               <select
                 v-model="transaction.category"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary"
-                required
+                class="w-full px-5 py-3.5 border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 bg-white"
               >
-                <option value="" disabled>Select a category</option>
-                <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
+                <option value="" disabled>Select category</option>
+                <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
               </select>
             </div>
+
+            <!-- Merchant -->
             <div class="space-y-2">
-              <label class="block text-sm font-medium text-gray-700">Merchant</label>
+              <label class="block text-sm font-medium text-gray-700">
+                Merchant <span class="text-red-500">*</span>
+              </label>
               <select
                 v-model="transaction.merchantName"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary"
-                required
+                class="w-full px-5 py-3.5 border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 bg-white"
               >
-                <option value="" disabled>Select a merchant</option>
-                <option v-for="merchant in merchants" :key="merchant" :value="merchant">{{ merchant }}</option>
+                <option value="" disabled>Select merchant</option>
+                <option v-for="mer in merchants" :key="mer" :value="mer">{{ mer }}</option>
               </select>
             </div>
           </div>
-          <div class="pt-4 flex justify-between">
+
+          <div class="flex justify-between pt-4">
             <button
               @click="viewTransactionHistory"
-              class="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-              aria-label="View Transaction History"
+              class="px-7 py-3.5 border border-gray-300 text-gray-700 rounded-2xl hover:bg-gray-50 font-medium transition-all"
             >
-              View Transaction History
+              View All Transactions
             </button>
             <button
               @click="checkEligibility"
-              class="px-6 py-3 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors"
               :disabled="loading || !isFormValid"
-              aria-label="Continue to Payment Options"
+              class="px-8 py-3.5 bg-blue-700 hover:bg-blue-800 disabled:bg-gray-300 text-white rounded-2xl font-semibold transition-all flex items-center gap-2"
             >
-              <span v-if="loading">Checking...</span>
-              <span v-else>Continue</span>
+              <span v-if="loading">Validating...</span>
+              <span v-else>Continue to Payment →</span>
             </button>
           </div>
         </div>
 
-        <!-- Step 2: Eligibility & Payment Options -->
-        <div v-if="currentStep === 1" class="space-y-6">
+        <!-- ===================== STEP 1: Payment Options ===================== -->
+        <div v-if="currentStep === 1" class="space-y-8">
+          <h2 class="text-2xl font-semibold text-gray-900">Choose Payment Option</h2>
+
+          <!-- Eligible -->
           <div v-if="eligibilityResult.eligible" class="space-y-6">
-            <div class="bg-green-50 border border-green-200 rounded-md p-4 flex items-start">
-              <div class="flex-shrink-0 text-green-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <div class="ml-3">
-                <h3 class="text-sm font-medium text-green-800">Eligible for BNPL</h3>
-                <div class="mt-1 text-sm text-green-700">
-                  You're eligible to split this payment into installments.
-                </div>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-6 flex gap-4">
+              <div class="text-emerald-600 text-3xl">✅</div>
+              <div>
+                <h3 class="font-semibold text-emerald-800">You are eligible for BNPL</h3>
+                <p class="text-emerald-700 text-sm">Split your payment into 3, 6 or 9 easy installments.</p>
               </div>
             </div>
-            <h2 class="text-xl font-semibold text-gray-800">Choose Payment Method</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Pay in Full -->
               <div
                 @click="selectPaymentMethod('full')"
-                :class="`border rounded-lg p-4 cursor-pointer transition-all ${selectedPaymentMethod === 'full' ? 'border-primary bg-primary-50' : 'border-gray-200 hover:border-primary'}`"
-                role="button"
-                aria-label="Select Pay in Full"
+                class="border-2 rounded-3xl p-6 cursor-pointer transition-all hover:shadow-md"
+                :class="selectedPaymentMethod === 'full' ? 'border-blue-700 bg-blue-50' : 'border-gray-200'"
               >
-                <div class="flex items-center">
-                  <div :class="`w-5 h-5 rounded-full border flex items-center justify-center ${selectedPaymentMethod === 'full' ? 'border-primary' : 'border-gray-300'}`">
-                    <div v-if="selectedPaymentMethod === 'full'" class="w-3 h-3 rounded-full bg-primary"></div>
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="flex items-center gap-3">
+                      <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center" :class="selectedPaymentMethod === 'full' ? 'border-blue-700' : 'border-gray-400'">
+                        <div v-if="selectedPaymentMethod === 'full'" class="w-3 h-3 bg-blue-700 rounded-full"></div>
+                      </div>
+                      <div class="font-semibold text-lg">Pay in Full</div>
+                    </div>
+                    <p class="text-gray-500 text-sm mt-1">One-time payment today</p>
                   </div>
-                  <div class="ml-3">
-                    <h3 class="font-medium">Pay in Full</h3>
-                    <p class="text-sm text-gray-500">Pay the entire amount now</p>
-                  </div>
+                  <div class="text-3xl font-bold text-gray-900">₹{{ Number(transaction.amount).toLocaleString('en-IN') }}</div>
                 </div>
-                <div class="mt-3 text-lg font-semibold">₹{{ transaction.amount }}</div>
               </div>
+
+              <!-- BNPL -->
               <div
                 @click="selectPaymentMethod('bnpl')"
-                :class="`border rounded-lg p-4 cursor-pointer transition-all ${selectedPaymentMethod === 'bnpl' ? 'border-primary bg-primary-50' : 'border-gray-200 hover:border-primary'}`"
-                role="button"
-                aria-label="Select Pay Later"
+                class="border-2 rounded-3xl p-6 cursor-pointer transition-all hover:shadow-md"
+                :class="selectedPaymentMethod === 'bnpl' ? 'border-blue-700 bg-blue-50' : 'border-gray-200'"
               >
-                <div class="flex items-center">
-                  <div :class="`w-5 h-5 rounded-full border flex items-center justify-center ${selectedPaymentMethod === 'bnpl' ? 'border-primary' : 'border-gray-300'}`">
-                    <div v-if="selectedPaymentMethod === 'bnpl'" class="w-3 h-3 rounded-full bg-primary"></div>
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="flex items-center gap-3">
+                      <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center" :class="selectedPaymentMethod === 'bnpl' ? 'border-blue-700' : 'border-gray-400'">
+                        <div v-if="selectedPaymentMethod === 'bnpl'" class="w-3 h-3 bg-blue-700 rounded-full"></div>
+                      </div>
+                      <div class="font-semibold text-lg">Buy Now Pay Later</div>
+                    </div>
+                    <p class="text-gray-500 text-sm mt-1">Split into installments</p>
                   </div>
-                  <div class="ml-3">
-                    <h3 class="font-medium">Pay Later</h3>
-                    <p class="text-sm text-gray-500">Split into installments</p>
-                  </div>
+                  <div class="text-blue-700 text-sm font-medium">View plans ↓</div>
                 </div>
-                <div class="mt-3 text-sm text-primary">View installment plans</div>
               </div>
             </div>
-            <div v-if="selectedPaymentMethod === 'bnpl'" class="mt-6 space-y-4">
-              <h3 class="font-medium">Select Installment Plan</h3>
+
+            <!-- Installment Plans -->
+            <div v-if="selectedPaymentMethod === 'bnpl'" class="space-y-5">
+              <h3 class="font-medium text-lg">Select Installment Plan</h3>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div
                   v-for="plan in installmentPlans"
                   :key="plan.months"
                   @click="selectInstallmentPlan(plan)"
-                  :class="`border rounded-lg p-4 cursor-pointer transition-all ${selectedPlan && selectedPlan.months === plan.months ? 'border-primary bg-primary-50' : 'border-gray-200 hover:border-primary'}`"
-                  role="button"
-                  :aria-label="`Select ${plan.months} month installment plan`"
+                  class="border-2 rounded-3xl p-6 cursor-pointer transition-all hover:shadow-md"
+                  :class="selectedPlan?.months === plan.months ? 'border-blue-700 bg-blue-50' : 'border-gray-200'"
                 >
-                  <div class="text-lg font-semibold">{{ plan.months }} months</div>
-                  <div class="text-sm text-gray-500 mt-1">
-                    {{ plan.months }} payments of ₹{{ (transaction.amount / plan.months).toFixed(2) }}
+                  <div class="text-3xl font-bold">{{ plan.months }} <span class="text-base font-normal">months</span></div>
+                  <div class="mt-4 text-sm text-gray-600">
+                    ₹{{ (transaction.amount / plan.months).toFixed(2) }} × {{ plan.months }}
                   </div>
-                  <div v-if="plan.interestRate > 0" class="mt-2 text-xs text-gray-500">
+                  <div v-if="plan.interestRate > 0" class="mt-3 text-xs text-amber-600">
                     {{ plan.interestRate }}% interest
                   </div>
-                  <div v-else class="mt-2 text-xs text-green-600 font-medium">
-                    Interest-free
-                  </div>
+                  <div v-else class="mt-3 text-xs text-emerald-600 font-medium">Zero interest</div>
                 </div>
               </div>
-            </div>
-            <div class="pt-4 flex justify-between">
-              <button
-                @click="currentStep = 0"
-                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-                aria-label="Back to Transaction Details"
-              >
-                Back
-              </button>
-              <button
-                @click="proceedToConfirmation"
-                class="px-6 py-3 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors"
-                :disabled="!canProceed || loading"
-                aria-label="Continue to Confirmation"
-              >
-                <span v-if="loading">Processing...</span>
-                <span v-else>Continue</span>
-              </button>
             </div>
           </div>
-          <div v-else class="space-y-6">
-            <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 flex items-start">
-              <div class="flex-shrink-0 text-yellow-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <div class="ml-3">
-                <h3 class="text-sm font-medium text-yellow-800">Not Eligible for BNPL</h3>
-                <div class="mt-1 text-sm text-yellow-700">
-                  {{ eligibilityResult.message || "You're not eligible for installment payments at this time." }}
-                </div>
-              </div>
-            </div>
-            <div class="pt-4 flex justify-between">
-              <button
-                @click="currentStep = 0"
-                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-                aria-label="Back to Transaction Details"
-              >
-                Back
-              </button>
-              <button
-                @click="proceedToPayInFull"
-                class="px-6 py-3 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors"
-                aria-label="Pay in Full"
-              >
-                Pay in Full
-              </button>
-            </div>
+
+          <!-- Not Eligible -->
+          <div v-else class="bg-amber-50 border border-amber-200 rounded-3xl p-8 text-center">
+            <div class="text-amber-500 text-4xl mb-3">⚠️</div>
+            <h3 class="font-semibold text-amber-800">Not eligible for installments right now</h3>
+            <p class="text-amber-700 mt-2">{{ eligibilityResult.message || 'Try full payment or check eligibility later.' }}</p>
+          </div>
+
+          <div class="flex justify-between pt-6">
+            <button
+              @click="currentStep = 0"
+              class="px-7 py-3.5 border border-gray-300 text-gray-700 rounded-2xl hover:bg-gray-50 font-medium"
+            >
+              ← Back
+            </button>
+            <button
+              @click="proceedToConfirmation"
+              :disabled="!canProceed || loading"
+              class="px-10 py-3.5 bg-blue-700 hover:bg-blue-800 disabled:bg-gray-300 text-white rounded-2xl font-semibold transition-all"
+            >
+              <span v-if="loading">Processing...</span>
+              <span v-else>Continue to Confirm</span>
+            </button>
           </div>
         </div>
 
-        <!-- Step 3: Confirmation -->
-        <div v-if="currentStep === 2" class="space-y-6">
-          <h2 class="text-xl font-semibold text-gray-800">Confirm Your Payment</h2>
-          <div class="bg-gray-50 rounded-lg p-6 space-y-4">
-            <div class="flex justify-between">
-              <span class="text-gray-600">Card ending in:</span>
-              <span class="font-medium">**** **** **** {{ transaction.cardNumber.slice(-4) || 'XXXX' }}</span>
+        <!-- ===================== STEP 2: Confirmation ===================== -->
+        <div v-if="currentStep === 2" class="space-y-8">
+          <h2 class="text-2xl font-semibold text-gray-900">Confirm Transaction</h2>
+
+          <div class="bg-gray-50 rounded-3xl p-8 space-y-6">
+            <div class="flex justify-between items-center border-b pb-6">
+              <span class="text-gray-600">Card ending in</span>
+              <span class="font-mono font-semibold">•••• {{ transaction.cardNumber.slice(-4) || 'XXXX' }}</span>
             </div>
-            <div class="flex justify-between">
-              <span class="text-gray-600">Transaction Amount:</span>
-              <span class="font-medium">₹{{ transaction.amount }}</span>
+            <div class="flex justify-between items-center border-b pb-6">
+              <span class="text-gray-600">Amount</span>
+              <span class="font-semibold text-xl">₹{{ Number(transaction.amount).toLocaleString('en-IN') }}</span>
             </div>
-            <div class="flex justify-between">
-              <span class="text-gray-600">Merchant:</span>
+            <div class="flex justify-between items-center border-b pb-6">
+              <span class="text-gray-600">Merchant</span>
               <span class="font-medium">{{ transaction.merchantName }}</span>
             </div>
-            <div class="flex justify-between">
-              <span class="text-gray-600">Category:</span>
+            <div class="flex justify-between items-center border-b pb-6">
+              <span class="text-gray-600">Category</span>
               <span class="font-medium">{{ transaction.category }}</span>
             </div>
-            <div v-if="selectedPaymentMethod === 'bnpl' && selectedPlan" class="pt-2">
-              <div class="border-t border-gray-200 pt-4">
-                <h3 class="font-medium mb-3">Installment Plan: {{ selectedPlan.months }} months</h3>
-                <div class="space-y-2">
-                  <div v-for="(installment, index) in calculatedInstallments" :key="index" class="flex justify-between text-sm">
-                    <span>Payment {{ index + 1 }} ({{ installment.dueDate }})</span>
-                    <span>₹{{ installment.amount }}</span>
-                  </div>
+
+            <!-- BNPL Summary -->
+            <div v-if="selectedPaymentMethod === 'bnpl' && selectedPlan" class="pt-4 border-t">
+              <div class="flex justify-between mb-4">
+                <span class="font-medium">Installment Plan</span>
+                <span class="font-medium">{{ selectedPlan.months }} months @ ₹{{ (transaction.amount / selectedPlan.months).toFixed(2) }}</span>
+              </div>
+              <div class="text-xs text-gray-500 bg-white p-5 rounded-2xl space-y-3">
+                <div v-for="(inst, i) in calculatedInstallments" :key="i" class="flex justify-between">
+                  <span>Installment {{ i + 1 }} • {{ inst.dueDate }}</span>
+                  <span class="font-medium">₹{{ inst.amount }}</span>
                 </div>
               </div>
             </div>
           </div>
-          <div class="pt-4 flex justify-between">
+
+          <div class="flex justify-between">
             <button
               @click="currentStep = 1"
-              class="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-              aria-label="Back to Payment Options"
+              class="px-7 py-3.5 border border-gray-300 text-gray-700 rounded-2xl hover:bg-gray-50 font-medium"
             >
-              Back
+              ← Back
             </button>
             <button
               @click="confirmTransaction"
-              class="px-6 py-3 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors"
               :disabled="loading"
-              aria-label="Confirm Payment"
+              class="px-10 py-3.5 bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-semibold transition-all"
             >
-              <span v-if="loading">Processing...</span>
-              <span v-else>Confirm Payment</span>
+              <span v-if="loading">Confirming...</span>
+              <span v-else>Confirm &amp; Pay</span>
             </button>
           </div>
         </div>
 
-        <!-- Step 4: Success -->
-        <div v-if="currentStep === 3" class="space-y-6 text-center py-8">
-          <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        <!-- ===================== STEP 3: Complete (Success) ===================== -->
+        <div v-if="currentStep === 3" class="py-12 text-center space-y-8">
+          <div class="mx-auto w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-14 h-14 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 class="text-2xl font-semibold text-gray-800">Payment Successful!</h2>
-          <p class="text-gray-600">
-            <span v-if="selectedPaymentMethod === 'bnpl'">
-              Your payment has been split into {{ selectedPlan.months }} installments.
-            </span>
-            <span v-else>
-              Your payment has been processed successfully.
-            </span>
-          </p>
-          <div class="pt-6 flex flex-col md:flex-row justify-center space-y-3 md:space-y-0 md:space-x-3">
+
+          <div>
+            <h2 class="text-3xl font-bold text-gray-900">Transaction Completed!</h2>
+            <p class="text-gray-600 mt-3 max-w-md mx-auto">
+              Your payment has been successfully processed.
+              {{ selectedPaymentMethod === 'bnpl' ? `It has been split into ${selectedPlan?.months} installments.` : 'Thank you for your payment.' }}
+            </p>
+          </div>
+
+          <!-- Centralized view buttons -->
+          <div class="flex flex-col md:flex-row gap-4 justify-center pt-6">
+            <button
+              @click="viewTransactionHistory"
+              class="flex-1 max-w-xs mx-auto px-8 py-4 bg-white border-2 border-gray-300 hover:border-gray-400 rounded-3xl font-medium flex items-center justify-center gap-3 transition-all"
+            >
+              <span class="text-xl">📋</span>
+              <span>View All Transactions</span>
+            </button>
+
             <button
               v-if="selectedPaymentMethod === 'bnpl'"
               @click="goToInstallments"
-              class="px-6 py-3 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors"
-              aria-label="View My Installments"
-              :disabled="loading"
+              class="flex-1 max-w-xs mx-auto px-8 py-4 bg-blue-700 hover:bg-blue-800 text-white rounded-3xl font-medium flex items-center justify-center gap-3 transition-all"
             >
-              <span v-if="loading">Loading...</span>
-              <span v-else>View My Installments</span>
-            </button>
-            <button
-              @click="viewTransactionHistory"
-              class="px-6 py-3 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors"
-              aria-label="View Transaction History"
-            >
-              View Transaction History
-            </button>
-            <button
-              @click="resetForm"
-              class="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-              aria-label="Make Another Payment"
-            >
-              Make Another Payment
+              <span class="text-xl">📆</span>
+              <span>Manage Installments</span>
             </button>
           </div>
+
+          <button
+            @click="resetForm"
+            class="text-blue-700 underline hover:text-blue-800 text-sm font-medium mt-8"
+          >
+            Make Another Payment
+          </button>
         </div>
 
-        <!-- Step 5: Installment Management View -->
-        <div v-if="currentStep === 4" class="space-y-6">
-          <div class="flex justify-between items-center">
-            <h2 class="text-xl font-semibold text-gray-800">My Installments</h2>
-            <div class="space-x-2">
+        <!-- ===================== STEP 4: My Installments ===================== -->
+        <div v-if="currentStep === 4" class="space-y-8">
+          <div class="flex items-center justify-between">
+            <h2 class="text-2xl font-semibold">My Installments</h2>
+            <div class="flex gap-2">
               <button
-                @click="filterInstallments('all')"
-                :class="`px-3 py-1 text-sm rounded-md ${installmentFilter === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'}`"
+                v-for="f in ['all','pending','paid','overdue']"
+                :key="f"
+                @click="filterInstallments(f)"
+                class="px-5 py-2 text-sm font-medium rounded-2xl transition-all"
+                :class="installmentFilter === f ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
               >
-                All
-              </button>
-              <button
-                @click="filterInstallments('pending')"
-                :class="`px-3 py-1 text-sm rounded-md ${installmentFilter === 'pending' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'}`"
-              >
-                Pending
-              </button>
-              <button
-                @click="filterInstallments('paid')"
-                :class="`px-3 py-1 text-sm rounded-md ${installmentFilter === 'paid' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'}`"
-              >
-                Paid
-              </button>
-              <button
-                @click="filterInstallments('overdue')"
-                :class="`px-3 py-1 text-sm rounded-md ${installmentFilter === 'overdue' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'}`"
-              >
-                Overdue
+                {{ f.charAt(0).toUpperCase() + f.slice(1) }}
               </button>
             </div>
           </div>
 
-          <div class="space-y-4">
-            <div class="flex justify-between items-center">
-              <div class="space-y-1">
-                <h3 class="font-medium">Search Installments</h3>
-                <div class="flex space-x-2">
-                  <input
-                    v-model="searchTransactionId"
-                    type="text"
-                    placeholder="Enter Transaction ID (auto-filled for recent BNPL)"
-                    class="px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary"
-                    aria-label="Search by Transaction ID"
-                  />
-                  <button
-                    @click="fetchInstallments"
-                    class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors"
-                    :disabled="loading || !searchTransactionId"
-                  >
-                    <span v-if="loading">Loading...</span>
-                    <span v-else>Search</span>
-                  </button>
-                </div>
-              </div>
-              <div class="flex space-x-2">
+          <div class="flex gap-3 items-end">
+            <div class="flex-1">
+              <label class="text-sm font-medium text-gray-600 block mb-1">Transaction ID</label>
+              <div class="flex">
+                <input
+                  v-model="searchTransactionId"
+                  type="text"
+                  class="flex-1 px-5 py-3.5 border border-gray-300 rounded-l-3xl focus:outline-none focus:border-blue-600"
+                  placeholder="Enter Transaction ID"
+                />
                 <button
-                  @click="viewTransactionHistory"
-                  class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                  @click="fetchInstallments"
+                  :disabled="loading || !searchTransactionId"
+                  class="bg-blue-700 text-white px-8 rounded-r-3xl font-medium"
                 >
-                  View Transactions
-                </button>
-                <button
-                  @click="resetForm"
-                  class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors"
-                >
-                  New Payment
+                  Search
                 </button>
               </div>
             </div>
+            <button @click="viewTransactionHistory" class="px-6 py-3.5 border border-gray-300 rounded-3xl text-gray-700 hover:bg-gray-50">All Transactions</button>
+          </div>
 
-            <div v-if="displayedInstallments.length === 0" class="text-center py-8 bg-gray-50 rounded-lg">
-              <p class="text-gray-500">No installments found for this Transaction ID</p>
-            </div>
+          <!-- Installments Table -->
+          <div v-if="Object.keys(groupedDisplayedInstallments).length === 0" class="text-center py-16 bg-gray-50 rounded-3xl">
+            <p class="text-gray-400">No installments found. Enter a valid Transaction ID above.</p>
+          </div>
 
-            <div v-else class="space-y-6">
-              <div v-for="(group, transId) in groupedDisplayedInstallments" :key="transId" class="border rounded-lg p-4">
-                <h3 class="font-medium mb-3">Transaction ID: {{ transId }}</h3>
-                <div class="overflow-x-auto">
-                  <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                      <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Installment ID</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Installment Number</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Late Fee</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                      <tr v-for="installment in group" :key="installment.id">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ installment.id }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ installment.installmentNumber }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">₹{{ installment.amount.toFixed(2) }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatDate(installment.dueDate) }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <span
-                            :class="`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${installment.isPaid ? 'bg-green-100 text-green-800' : isOverdue(installment.dueDate) ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`"
-                          >
-                            {{ installment.isPaid ? 'Paid' : isOverdue(installment.dueDate) ? 'Overdue' : 'Pending' }}
-                          </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{{ installment.lateFee.toFixed(2) }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            v-if="!installment.isPaid"
-                            @click="payInstallment(installment)"
-                            class="px-3 py-1 bg-primary text-white text-sm rounded-md hover:bg-primary-dark transition-colors"
-                            :disabled="loading"
-                          >
-                            Pay Now
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <div class="mt-2 text-sm font-medium">
-                  Total: ₹{{ calculateTotalAmount(group) }}
-                </div>
+          <div v-else class="space-y-10">
+            <div v-for="(group, transId) in groupedDisplayedInstallments" :key="transId" class="border border-gray-200 rounded-3xl overflow-hidden">
+              <div class="bg-gray-50 px-8 py-5 font-medium flex justify-between">
+                <span>Transaction #{{ transId }}</span>
+                <span class="text-emerald-600">Total: ₹{{ calculateTotalAmount(group) }}</span>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="min-w-full">
+                  <thead class="bg-white">
+                    <tr class="border-b">
+                      <th class="px-8 py-4 text-left text-xs font-medium text-gray-500">INST. ID</th>
+                      <th class="px-8 py-4 text-left text-xs font-medium text-gray-500">NO.</th>
+                      <th class="px-8 py-4 text-left text-xs font-medium text-gray-500">AMOUNT</th>
+                      <th class="px-8 py-4 text-left text-xs font-medium text-gray-500">DUE DATE</th>
+                      <th class="px-8 py-4 text-left text-xs font-medium text-gray-500">STATUS</th>
+                      <th class="px-8 py-4 text-left text-xs font-medium text-gray-500">LATE FEE</th>
+                      <th class="px-8 py-4 text-right text-xs font-medium text-gray-500">ACTION</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y">
+                    <tr v-for="inst in group" :key="inst.id" class="hover:bg-gray-50">
+                      <td class="px-8 py-5 font-mono text-sm">{{ inst.id }}</td>
+                      <td class="px-8 py-5 text-sm text-gray-500">{{ inst.installmentNumber }}</td>
+                      <td class="px-8 py-5 font-medium">₹{{ inst.amount.toFixed(2) }}</td>
+                      <td class="px-8 py-5 text-sm text-gray-500">{{ formatDate(inst.dueDate) }}</td>
+                      <td class="px-8 py-5">
+                        <span
+                          class="inline-flex px-4 py-1 text-xs font-medium rounded-3xl"
+                          :class="inst.isPaid ? 'bg-emerald-100 text-emerald-700' : isOverdue(inst.dueDate) ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'"
+                        >
+                          {{ inst.isPaid ? 'Paid' : isOverdue(inst.dueDate) ? 'Overdue' : 'Pending' }}
+                        </span>
+                      </td>
+                      <td class="px-8 py-5 text-sm text-gray-500">₹{{ inst.lateFee.toFixed(2) }}</td>
+                      <td class="px-8 py-5 text-right">
+                        <button
+                          v-if="!inst.isPaid"
+                          @click="payInstallment(inst)"
+                          class="px-6 py-2 bg-blue-700 text-white text-sm rounded-2xl hover:bg-blue-800 disabled:opacity-50"
+                          :disabled="loading"
+                        >
+                          Pay Now
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
 
-          <div class="pt-4">
-            <button
-              @click="resetForm"
-              class="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-            >
-              Make New Payment
-            </button>
-          </div>
+          <button @click="resetForm" class="w-full py-4 border border-gray-300 rounded-3xl text-gray-700 font-medium">New Payment</button>
         </div>
 
-        <!-- Step 6: Transaction History -->
-        <div v-if="currentStep === 5" class="space-y-6">
+        <!-- ===================== STEP 5: Transaction History (Centralized) ===================== -->
+        <div v-if="currentStep === 5" class="space-y-8">
           <div class="flex justify-between items-center">
-            <h2 class="text-xl font-semibold text-gray-800">Transaction History</h2>
-            <div class="space-x-2">
+            <h2 class="text-2xl font-semibold">All Transactions</h2>
+            <div class="flex gap-2">
               <button
-                @click="filterTransactions('all')"
-                :class="`px-3 py-1 text-sm rounded-md ${transactionFilter === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'}`"
+                v-for="f in ['all','full','bnpl']"
+                :key="f"
+                @click="filterTransactions(f)"
+                class="px-5 py-2 text-sm font-medium rounded-2xl transition-all"
+                :class="transactionFilter === f ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
               >
-                All
-              </button>
-              <button
-                @click="filterTransactions('full')"
-                :class="`px-3 py-1 text-sm rounded-md ${transactionFilter === 'full' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'}`"
-              >
-                Paid in Full
-              </button>
-              <button
-                @click="filterTransactions('bnpl')"
-                :class="`px-3 py-1 text-sm rounded-md ${transactionFilter === 'bnpl' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'}`"
-              >
-                BNPL
+                {{ f === 'full' ? 'Paid in Full' : f === 'bnpl' ? 'BNPL' : 'All' }}
               </button>
             </div>
           </div>
 
-          <div class="space-y-4">
-            <div class="flex justify-between items-center">
-              <div class="space-y-1">
-                <h3 class="font-medium">Search Transactions</h3>
-                <div class="flex space-x-2">
-                  <input
-                    v-model="searchCardId"
-                    type="text"
-                    placeholder="Enter Card Number (last 4 digits)"
-                    class="px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary"
-                  />
-                  <button
-                    @click="fetchTransactions"
-                    class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors"
-                    :disabled="loading || !searchCardId"
-                  >
-                    <span v-if="loading">Loading...</span>
-                    <span v-else>Search</span>
-                  </button>
-                </div>
-              </div>
-              <div class="flex space-x-2">
-                <button
-                  @click="goToInstallments"
-                  class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-                >
-                  View Installments
-                </button>
-                <button
-                  @click="resetForm"
-                  class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors"
-                >
-                  New Payment
-                </button>
+          <!-- Search & Date Filter -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label class="block text-sm font-medium mb-2">Card Last 4 Digits</label>
+              <div class="flex">
+                <input v-model="searchCardId" placeholder="1234" class="flex-1 px-5 py-3.5 border border-gray-300 rounded-l-3xl focus:outline-none focus:border-blue-600" />
+                <button @click="fetchTransactions" :disabled="loading" class="bg-blue-700 text-white px-8 rounded-r-3xl">Search</button>
               </div>
             </div>
-
-            <!-- Date range filter -->
-            <div class="flex flex-wrap gap-4 items-end">
-              <div class="space-y-1">
-                <label class="block text-sm font-medium text-gray-700">From Date</label>
-                <input
-                  v-model="dateFilter.from"
-                  type="date"
-                  class="px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary"
-                />
-              </div>
-              <div class="space-y-1">
-                <label class="block text-sm font-medium text-gray-700">To Date</label>
-                <input
-                  v-model="dateFilter.to"
-                  type="date"
-                  class="px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary"
-                />
-              </div>
-              <button
-                @click="applyDateFilter"
-                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
-              >
-                Apply Filter
-              </button>
-              <button
-                @click="clearDateFilter"
-                class="px-4 py-2 text-gray-500 rounded-md hover:text-gray-700 transition-colors"
-              >
-                Clear
-              </button>
+            <div>
+              <label class="block text-sm font-medium mb-2">From Date</label>
+              <input v-model="dateFilter.from" type="date" class="w-full px-5 py-3.5 border border-gray-300 rounded-3xl" />
             </div>
-
-            <div v-if="loading" class="text-center py-8 bg-gray-50 rounded-lg">
-              <p class="text-gray-500">Loading transactions...</p>
-            </div>
-
-            <div v-else-if="transactions.length === 0" class="text-center py-8 bg-gray-50 rounded-lg">
-              <p class="text-gray-500">No transactions found</p>
-            </div>
-
-            <div v-else class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction ID</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Merchant</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Method</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                  <tr v-for="transaction in transactions" :key="transaction.id">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{{ transaction.id }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatDate(transaction.transactionDate) }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ transaction.merchantName || 'N/A' }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ transaction.category || 'N/A' }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">₹{{ transaction.amount?.toFixed(2) || '0.00' }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <span
-                        :class="`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${transaction.isBNPL ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`"
-                      >
-                        {{ transaction.isBNPL ? 'BNPL' : 'Paid in Full' }}
-                      </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <span
-                        :class="`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClass(transaction.status)}`"
-                      >
-                        {{ transaction.status || 'Unknown' }}
-                      </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        v-if="transaction.isBNPL"
-                        @click="viewTransactionInstallments(transaction.id)"
-                        class="text-primary hover:text-primary-dark"
-                      >
-                        View Installments
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <!-- Pagination -->
-              <div v-if="transactions.length > 0" class="flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-6 mt-4">
-                <div class="flex-1 flex justify-between sm:hidden">
-                  <button
-                    @click="prevPage"
-                    :disabled="currentPage === 1"
-                    :class="`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    @click="nextPage"
-                    :disabled="currentPage === totalPages"
-                    :class="`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`"
-                  >
-                    Next
-                  </button>
-                </div>
-                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div>
-                    <p class="text-sm text-gray-700">
-                      Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to
-                      <span class="font-medium">{{ Math.min(currentPage * pageSize, totalTransactions) }}</span> of
-                      <span class="font-medium">{{ totalTransactions }}</span> results
-                    </p>
-                  </div>
-                  <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                    <button
-                      @click="prevPage"
-                      :disabled="currentPage === 1"
-                      class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                    >
-                      <span class="sr-only">Previous</span>
-                      <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-                      </svg>
-                    </button>
-                    <button
-                      v-for="page in paginationRange"
-                      :key="page"
-                      @click="goToPage(page)"
-                      :class="`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page ? 'z-10 bg-primary border-primary text-white' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'}`"
-                    >
-                      {{ page }}
-                    </button>
-                    <button
-                      @click="nextPage"
-                      :disabled="currentPage === totalPages"
-                      class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                    >
-                      <span class="sr-only">Next</span>
-                      <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                      </svg>
-                    </button>
-                  </nav>
-                </div>
+            <div>
+              <label class="block text-sm font-medium mb-2">To Date</label>
+              <div class="flex gap-3">
+                <input v-model="dateFilter.to" type="date" class="flex-1 px-5 py-3.5 border border-gray-300 rounded-3xl" />
+                <button @click="clearDateFilter" class="text-gray-400 hover:text-gray-600">Clear</button>
               </div>
             </div>
           </div>
+
+          <!-- Table -->
+          <div v-if="loading" class="text-center py-12">Loading transactions...</div>
+          <div v-else-if="paginatedTransactions.length === 0" class="text-center py-16 bg-gray-50 rounded-3xl text-gray-400">No transactions found</div>
+          <div v-else class="overflow-x-auto rounded-3xl border border-gray-100">
+            <table class="min-w-full">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-8 py-5 text-left text-xs font-medium text-gray-500">ID</th>
+                  <th class="px-8 py-5 text-left text-xs font-medium text-gray-500">DATE</th>
+                  <th class="px-8 py-5 text-left text-xs font-medium text-gray-500">MERCHANT</th>
+                  <th class="px-8 py-5 text-left text-xs font-medium text-gray-500">AMOUNT</th>
+                  <th class="px-8 py-5 text-left text-xs font-medium text-gray-500">METHOD</th>
+                  <th class="px-8 py-5 text-left text-xs font-medium text-gray-500">STATUS</th>
+                  <th class="px-8 py-5 text-right text-xs font-medium text-gray-500">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                <tr v-for="t in paginatedTransactions" :key="t.id" class="hover:bg-gray-50">
+                  <td class="px-8 py-6 font-mono text-sm">#{{ t.id }}</td>
+                  <td class="px-8 py-6 text-sm text-gray-600">{{ formatDate(t.transactionDate) }}</td>
+                  <td class="px-8 py-6">{{ t.merchantName || '—' }}</td>
+                  <td class="px-8 py-6 font-medium">₹{{ Number(t.amount).toLocaleString('en-IN') }}</td>
+                  <td class="px-8 py-6">
+                    <span class="inline-flex px-4 py-1 rounded-3xl text-xs" :class="t.isBNPL ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'">
+                      {{ t.isBNPL ? 'BNPL' : 'Full' }}
+                    </span>
+                  </td>
+                  <td class="px-8 py-6">
+                    <span class="inline-flex px-4 py-1 rounded-3xl text-xs" :class="getStatusClass(t.status)">
+                      {{ t.status || 'Completed' }}
+                    </span>
+                  </td>
+                  <td class="px-8 py-6 text-right">
+                    <button
+                      v-if="t.isBNPL"
+                      @click="viewTransactionInstallments(t.id)"
+                      class="text-blue-700 hover:text-blue-800 font-medium text-sm"
+                    >
+                      View Installments →
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div v-if="totalPages > 1" class="flex items-center justify-between text-sm">
+            <button @click="prevPage" :disabled="currentPage === 1" class="px-5 py-2 border rounded-2xl disabled:opacity-30">Previous</button>
+            <div class="flex gap-2">
+              <button
+                v-for="p in paginationRange"
+                :key="p"
+                @click="goToPage(p)"
+                class="w-9 h-9 flex items-center justify-center rounded-2xl"
+                :class="currentPage === p ? 'bg-blue-700 text-white' : 'hover:bg-gray-100'"
+              >{{ p }}</button>
+            </div>
+            <button @click="nextPage" :disabled="currentPage === totalPages" class="px-5 py-2 border rounded-2xl disabled:opacity-30">Next</button>
+          </div>
+
+          <button @click="resetForm" class="mt-8 w-full py-4 text-blue-700 underline">New Payment</button>
         </div>
       </div>
     </div>
@@ -734,20 +613,19 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
-const router = useRouter();
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'; // ← change to your real backend
+const router = useRouter()
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
-const getAuthToken = () => {
-  return localStorage.getItem('authToken') || localStorage.getItem('token') || '';
-};
+const getAuthToken = () => localStorage.getItem('authToken') || localStorage.getItem('token') || ''
 
-const steps = ['Transaction Details', 'Payment Options', 'Confirmation', 'Complete', 'My Installments', 'Transaction History'];
-const currentStep = ref(0);
-const loading = ref(false);
-const errorMessage = ref('');
+const steps = ['Transaction Details', 'Payment Options', 'Confirmation', 'Complete', 'My Installments', 'All Transactions']
+
+const currentStep = ref(0)
+const loading = ref(false)
+const errorMessage = ref('')
 
 const transaction = ref({
   cardNumber: '',
@@ -758,111 +636,152 @@ const transaction = ref({
   category: '',
   merchantName: '',
   isBNPL: false
-});
+})
 
-const categories = ref(['Electronics', 'Clothing', 'Travel', 'Home', 'Food', 'Entertainment', 'Other']);
-const merchants = ref(['Amazon', 'Walmart', 'Best Buy', 'Target', 'eBay', 'Other']);
+const categories = ref(['Electronics', 'Clothing', 'Travel', 'Home & Kitchen', 'Food', 'Entertainment', 'Other'])
+const merchants = ref(['Amazon', 'Flipkart', 'Myntra', 'Nykaa', 'Swiggy', 'Zomato', 'Other'])
 
-const planMapping = { 3: 'THREE', 6: 'SIX', 9: 'NINE' };
+const planMapping = { 3: 'THREE', 6: 'SIX', 9: 'NINE' }
 
-const eligibilityResult = ref({ eligible: false, message: '' });
-const selectedPaymentMethod = ref(null);
-const selectedPlan = ref(null);
+const eligibilityResult = ref({ eligible: false, message: '' })
+const selectedPaymentMethod = ref(null)
+const selectedPlan = ref(null)
 const installmentPlans = ref([
   { months: 3, interestRate: 0 },
   { months: 6, interestRate: 2.5 },
   { months: 9, interestRate: 4 }
-]);
+])
 
-const installments = ref([]);
-const searchTransactionId = ref('');
-const installmentFilter = ref('all');
-const displayedInstallments = ref([]);
+const installments = ref([])
+const searchTransactionId = ref('')
+const installmentFilter = ref('all')
+const displayedInstallments = ref([])
 
-const transactions = ref([]);
-const searchCardId = ref('');
-const transactionFilter = ref('all');
-const dateFilter = ref({ from: '', to: '' });
-const currentPage = ref(1);
-const pageSize = 10;
-const totalTransactions = ref(0);
+const transactions = ref([])
+const searchCardId = ref('')
+const transactionFilter = ref('all')
+const dateFilter = ref({ from: '', to: '' })
+const currentPage = ref(1)
+const pageSize = 10
 
-const totalPages = computed(() => Math.ceil(totalTransactions.value / pageSize));
-const paginationRange = computed(() => {
-  const maxPages = 5;
-  const range = [];
-  const half = Math.floor(maxPages / 2);
-  let start = Math.max(1, currentPage.value - half);
-  let end = Math.min(totalPages.value, start + maxPages - 1);
-  if (end - start + 1 < maxPages) start = Math.max(1, end - maxPages + 1);
-  for (let i = start; i <= end; i++) range.push(i);
-  return range;
-});
+// Computed filters & pagination
+const filteredDisplayedInstallments = computed(() => {
+  return displayedInstallments.value.filter(inst => {
+    if (installmentFilter.value === 'all') return true
+    const status = inst.isPaid ? 'paid' : isOverdue(inst.dueDate) ? 'overdue' : 'pending'
+    return status === installmentFilter.value
+  })
+})
 
 const groupedDisplayedInstallments = computed(() => {
-  const groups = {};
-  displayedInstallments.value.forEach(i => {
-    const transId = i.transactionId || searchTransactionId.value || 'Unknown';
-    if (!groups[transId]) groups[transId] = [];
-    groups[transId].push(i);
-  });
-  return groups;
-});
+  const groups = {}
+  filteredDisplayedInstallments.value.forEach(i => {
+    const tid = i.transactionId || searchTransactionId.value || 'Unknown'
+    if (!groups[tid]) groups[tid] = []
+    groups[tid].push(i)
+  })
+  return groups
+})
 
-const canProceed = computed(() => {
-  return selectedPaymentMethod.value === 'full' || (selectedPaymentMethod.value === 'bnpl' && selectedPlan.value);
-});
+const filteredTransactions = computed(() => {
+  let list = [...transactions.value]
+
+  // Method filter
+  if (transactionFilter.value !== 'all') {
+    list = list.filter(t => (t.isBNPL ? 'bnpl' : 'full') === transactionFilter.value)
+  }
+
+  // Card last 4
+  if (searchCardId.value) {
+    list = list.filter(t => (t.cardNumber || '').slice(-4) === searchCardId.value.trim())
+  }
+
+  // Date range
+  if (dateFilter.value.from) {
+    const from = new Date(dateFilter.value.from)
+    list = list.filter(t => new Date(t.transactionDate) >= from)
+  }
+  if (dateFilter.value.to) {
+    const to = new Date(dateFilter.value.to)
+    list = list.filter(t => new Date(t.transactionDate) <= to)
+  }
+
+  return list
+})
+
+const paginatedTransactions = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return filteredTransactions.value.slice(start, start + pageSize)
+})
+
+const totalTransactions = computed(() => filteredTransactions.value.length)
+const totalPages = computed(() => Math.ceil(totalTransactions.value / pageSize))
+const paginationRange = computed(() => {
+  const max = 5
+  let start = Math.max(1, currentPage.value - Math.floor(max / 2))
+  let end = Math.min(totalPages.value, start + max - 1)
+  if (end - start + 1 < max) start = Math.max(1, end - max + 1)
+  const range = []
+  for (let i = start; i <= end; i++) range.push(i)
+  return range
+})
+
+const canProceed = computed(() => selectedPaymentMethod.value === 'full' || (selectedPaymentMethod.value === 'bnpl' && selectedPlan.value))
 
 const calculatedInstallments = computed(() => {
-  if (!selectedPlan.value) return [];
-  const amount = parseFloat(transaction.value.amount);
-  const months = selectedPlan.value.months;
-  const installmentAmount = (amount / months).toFixed(2);
-  const today = new Date();
-  const arr = [];
+  if (!selectedPlan.value) return []
+  const amt = parseFloat(transaction.value.amount)
+  const months = selectedPlan.value.months
+  const perMonth = (amt / months).toFixed(2)
+  const today = new Date()
+  const arr = []
   for (let i = 0; i < months; i++) {
-    const due = new Date(today);
-    due.setMonth(today.getMonth() + i + 1);
+    const due = new Date(today)
+    due.setMonth(today.getMonth() + i + 1)
     arr.push({
-      amount: installmentAmount,
+      amount: perMonth,
       dueDate: due.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-    });
+    })
   }
-  return arr;
-});
+  return arr
+})
 
 const isFormValid = computed(() => {
-  const num = transaction.value.cardNumber.replace(/\s/g, '');
+  const cleanCard = transaction.value.cardNumber.replace(/\s/g, '')
   return (
-    num.length === 16 &&
-    /^\d+$/.test(num) &&
+    cleanCard.length === 16 &&
+    /^\d+$/.test(cleanCard) &&
     transaction.value.cvv?.length >= 3 &&
-    transaction.value.cvv?.length <= 4 &&
     /^\d+$/.test(transaction.value.cvv) &&
     transaction.value.expiryMonth?.match(/^(0[1-9]|1[0-2])$/) &&
     transaction.value.expiryYear?.match(/^\d{2}$/) &&
     Number(transaction.value.amount) > 0 &&
     transaction.value.category &&
     transaction.value.merchantName
-  );
-});
+  )
+})
 
-// ─── Eligibility Check ────────────────────────────────────────
+// Navigation
+const goToStep = (index) => {
+  if (index <= currentStep.value) currentStep.value = index
+}
+
+// Card formatting
+const formatCardNumber = () => {
+  let val = transaction.value.cardNumber.replace(/\s/g, '')
+  val = val.replace(/(\d{4})/g, '$1 ').trim()
+  transaction.value.cardNumber = val
+}
+
+// API calls (updated with /api prefix to match backend)
 const checkEligibility = async () => {
   if (!isFormValid.value) {
-    errorMessage.value = 'Please fill all fields correctly (16-digit card, valid expiry, amount > 0)';
-    return;
+    errorMessage.value = 'Please fill all mandatory fields correctly'
+    return
   }
-
-  const token = getAuthToken();
-  if (!token) {
-    errorMessage.value = 'Please log in again. No token found.';
-    return;
-  }
-
-  loading.value = true;
-  errorMessage.value = '';
-
+  loading.value = true
+  errorMessage.value = ''
+  const token = getAuthToken()
   try {
     const payload = {
       cardNumber: transaction.value.cardNumber.replace(/\s/g, ''),
@@ -871,46 +790,27 @@ const checkEligibility = async () => {
       expiryYear: transaction.value.expiryYear,
       amount: Number(transaction.value.amount),
       category: transaction.value.category,
-      merchantName: transaction.value.merchantName,
-      isBNPL: false
-    };
-
-    const res = await fetch(`${API_BASE_URL}/transactions/validate-card`, {
+      merchantName: transaction.value.merchantName
+    }
+    const res = await fetch(`${API_BASE_URL}/api/transactions/validate-card`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(payload)
-    });
-
-    if (!res.ok) throw new Error('Card validation failed');
-
-    const data = await res.json();
-    eligibilityResult.value = {
-      eligible: !!data.eligible,
-      message: data.message || (data.eligible ? 'Eligible' : 'Not eligible')
-    };
-    currentStep.value = 1;
-  } catch (err) {
-    errorMessage.value = err.message || 'Something went wrong';
+    })
+    const data = await res.json()
+    eligibilityResult.value = { eligible: !!data.eligible, message: data.message || '' }
+    currentStep.value = 1
+  } catch (e) {
+    errorMessage.value = e.message || 'Validation failed'
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
-// ─── Confirm Transaction + Save last BNPL ID ──────────────────
 const confirmTransaction = async () => {
-  loading.value = true;
-  errorMessage.value = '';
-
-  const token = getAuthToken();
-  if (!token) {
-    errorMessage.value = 'Please log in again.';
-    loading.value = false;
-    return;
-  }
-
+  loading.value = true
+  errorMessage.value = ''
+  const token = getAuthToken()
   const payload = {
     cardNumber: transaction.value.cardNumber.replace(/\s/g, ''),
     cvv: transaction.value.cvv,
@@ -919,198 +819,147 @@ const confirmTransaction = async () => {
     amount: parseFloat(transaction.value.amount),
     category: transaction.value.category,
     merchantName: transaction.value.merchantName,
-    isBNPL: transaction.value.isBNPL
-  };
-
+    isBNPL: selectedPaymentMethod.value === 'bnpl'
+  }
   try {
-    const endpoint = transaction.value.isBNPL
-      ? `${API_BASE_URL}/transactions/bnpl?plan=${planMapping[selectedPlan.value.months]}`
-      : `${API_BASE_URL}/transactions`;
-
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!res.ok) {
-      if (res.status === 401) {
-        localStorage.clear();
-        router.push('/login');
-        return;
-      }
-      throw new Error('Transaction failed');
+    let url = `${API_BASE_URL}/api/transactions`
+    if (selectedPaymentMethod.value === 'bnpl' && selectedPlan.value) {
+      url = `${API_BASE_URL}/api/transactions/bnpl?plan=${planMapping[selectedPlan.value.months]}`
     }
-
-    const saved = await res.json();
-
-    // Save last BNPL transaction ID
-    if (transaction.value.isBNPL || saved.isBNPL) {
-      const txId = saved.id || saved.transactionId || saved._id;
-      if (txId) {
-        localStorage.setItem('lastBnplTransactionId', txId.toString());
-      }
-    }
-
-    currentStep.value = 3;
-  } catch (err) {
-    errorMessage.value = err.message || 'Payment failed';
-  } finally {
-    loading.value = false;
-  }
-};
-
-// ─── Auto-load last BNPL installments ─────────────────────────
-const goToInstallments = () => {
-  const lastId = localStorage.getItem('lastBnplTransactionId');
-  if (lastId) {
-    searchTransactionId.value = lastId;
-  }
-
-  currentStep.value = 4;
-
-  if (searchTransactionId.value) {
-    fetchInstallments();
-  }
-};
-
-// ─── Fetch Transactions (example – adjust to your API) ────────
-const fetchTransactions = async () => {
-  if (!searchCardId.value.trim()) {
-    errorMessage.value = 'Please enter last 4 digits of card';
-    return;
-  }
-
-  loading.value = true;
-  errorMessage.value = '';
-
-  try {
-    const token = getAuthToken();
-    const url = `${API_BASE_URL}/transactions?cardLast4=${searchCardId.value}&filter=${transactionFilter.value}`;
-
     const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload)
+    })
+    if (!res.ok) throw new Error('Transaction failed')
+    const saved = await res.json()
 
-    if (!res.ok) throw new Error('Failed to load transactions');
-
-    const data = await res.json();
-    transactions.value = data.transactions || data || [];
-    totalTransactions.value = data.total || transactions.value.length;
-  } catch (err) {
-    errorMessage.value = 'Could not load transactions';
+    if (selectedPaymentMethod.value === 'bnpl') {
+      const txId = saved.id || saved.transactionId
+      if (txId) localStorage.setItem('lastBnplTransactionId', txId.toString())
+    }
+    currentStep.value = 3
+  } catch (e) {
+    errorMessage.value = e.message || 'Payment failed'
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
-// ─── Fetch Installments (example – adjust to your API) ────────
 const fetchInstallments = async () => {
-  if (!searchTransactionId.value.trim()) {
-    errorMessage.value = 'Please enter Transaction ID';
-    return;
-  }
-
-  loading.value = true;
-  errorMessage.value = '';
-
+  if (!searchTransactionId.value) return
+  loading.value = true
   try {
-    const token = getAuthToken();
-    const res = await fetch(
-      `${API_BASE_URL}/installments?transactionId=${searchTransactionId.value}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    if (!res.ok) throw new Error('Failed to load installments');
-
-    const data = await res.json();
-    displayedInstallments.value = data.installments || data || [];
-  } catch (err) {
-    errorMessage.value = 'Could not load installments';
+    const res = await fetch(`${API_BASE_URL}/api/bnpl/installments/transaction/${searchTransactionId.value}`, {
+      headers: { Authorization: `Bearer ${getAuthToken()}` }
+    })
+    const data = await res.json()
+    displayedInstallments.value = data || []
+  } catch (e) {
+    errorMessage.value = 'Failed to load installments'
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
-// Other functions (keep or adjust as needed)
-const viewTransactionHistory = () => {
-  if (transaction.value.cardNumber) {
-    searchCardId.value = transaction.value.cardNumber.slice(-4);
+const fetchTransactions = async () => {
+  loading.value = true
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/transactions`, {
+      headers: { Authorization: `Bearer ${getAuthToken()}` }
+    })
+    const data = await res.json()
+    transactions.value = Array.isArray(data) ? data : data.transactions || []
+    currentPage.value = 1
+  } catch (e) {
+    errorMessage.value = 'Failed to load transactions'
+  } finally {
+    loading.value = false
   }
-  currentStep.value = 5;
-  fetchTransactions();
-};
+}
+
+const payInstallment = async (inst) => {
+  loading.value = true
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/bnpl/installments/${inst.id}/pay?amount=${inst.amount}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${getAuthToken()}` }
+    })
+    if (res.ok) {
+      fetchInstallments()
+    }
+  } catch (e) {
+    errorMessage.value = 'Installment payment failed'
+  } finally {
+    loading.value = false
+  }
+}
+
+// Navigation helpers
+const proceedToConfirmation = () => { if (canProceed.value) currentStep.value = 2 }
+const selectPaymentMethod = (method) => {
+  selectedPaymentMethod.value = method
+  transaction.value.isBNPL = method === 'bnpl'
+  if (method === 'full') selectedPlan.value = null
+}
+const selectInstallmentPlan = (plan) => { selectedPlan.value = plan }
+const viewTransactionHistory = () => {
+  if (transaction.value.cardNumber) searchCardId.value = transaction.value.cardNumber.slice(-4)
+  currentStep.value = 5
+  fetchTransactions()
+}
+const goToInstallments = () => {
+  const lastId = localStorage.getItem('lastBnplTransactionId')
+  if (lastId) searchTransactionId.value = lastId
+  currentStep.value = 4
+  if (searchTransactionId.value) fetchInstallments()
+}
+const viewTransactionInstallments = (id) => {
+  searchTransactionId.value = String(id)
+  currentStep.value = 4
+  fetchInstallments()
+}
+
+// Filters
+const filterInstallments = (f) => { installmentFilter.value = f }
+const filterTransactions = (f) => { transactionFilter.value = f }
+const applyDateFilter = () => { currentPage.value = 1 } // reactive already
+const clearDateFilter = () => {
+  dateFilter.value = { from: '', to: '' }
+  currentPage.value = 1
+}
+const prevPage = () => { if (currentPage.value > 1) currentPage.value-- }
+const nextPage = () => { if (currentPage.value < totalPages.value) currentPage.value++ }
+const goToPage = (p) => { currentPage.value = p }
+
+// Helpers
+const calculateTotalAmount = (arr) => arr.reduce((sum, i) => sum + Number(i.amount), 0).toFixed(2)
+const isOverdue = (d) => new Date(d) < new Date()
+const formatDate = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+const getStatusClass = (s) => {
+  if (s === 'Completed') return 'bg-emerald-100 text-emerald-700'
+  if (s === 'Pending') return 'bg-amber-100 text-amber-700'
+  return 'bg-gray-100 text-gray-600'
+}
 
 const resetForm = () => {
-  currentStep.value = 0;
-  transaction.value = { cardNumber: '', cvv: '', expiryMonth: '', expiryYear: '', amount: '', category: '', merchantName: '', isBNPL: false };
-  eligibilityResult.value = { eligible: false, message: '' };
-  selectedPaymentMethod.value = null;
-  selectedPlan.value = null;
-  searchTransactionId.value = '';
-  displayedInstallments.value = [];
-  errorMessage.value = '';
-  transactions.value = [];
-  searchCardId.value = '';
-};
-
-const selectPaymentMethod = (method) => {
-  selectedPaymentMethod.value = method;
-  transaction.value.isBNPL = method === 'bnpl';
-  if (method === 'full') selectedPlan.value = null;
-};
-
-const selectInstallmentPlan = (plan) => selectedPlan.value = plan;
-
-const proceedToConfirmation = () => {
-  if (canProceed.value) currentStep.value = 2;
-};
-
-const proceedToPayInFull = () => {
-  selectedPaymentMethod.value = 'full';
-  transaction.value.isBNPL = false;
-  selectedPlan.value = null;
-  currentStep.value = 2;
-};
-
-// Placeholder for remaining functions – implement as needed
-const filterInstallments = () => { /* ... */ };
-const filterTransactions = () => { /* ... */ };
-const applyDateFilter = () => { /* ... */ };
-const clearDateFilter = () => { /* ... */ };
-const prevPage = () => currentPage.value-- ;
-const nextPage = () => currentPage.value++ ;
-const goToPage = (p) => currentPage.value = p;
-const payInstallment = async () => { /* implement payment */ };
-const calculateTotalAmount = (arr) => arr.reduce((sum, i) => sum + Number(i.amount), 0).toFixed(2);
-const isOverdue = (d) => new Date(d) < new Date();
-const formatDate = (d) => new Date(d).toLocaleDateString('en-IN');
-const getStatusClass = (s) => {
-  if (s === 'Completed') return 'bg-green-100 text-green-800';
-  if (s === 'Pending') return 'bg-yellow-100 text-yellow-800';
-  return 'bg-gray-100 text-gray-800';
-};
+  currentStep.value = 0
+  transaction.value = { cardNumber: '', cvv: '', expiryMonth: '', expiryYear: '', amount: '', category: '', merchantName: '', isBNPL: false }
+  eligibilityResult.value = { eligible: false, message: '' }
+  selectedPaymentMethod.value = null
+  selectedPlan.value = null
+  displayedInstallments.value = []
+  searchTransactionId.value = ''
+  searchCardId.value = ''
+  transactions.value = []
+  errorMessage.value = ''
+}
 
 onMounted(() => {
-  // Pre-fill if you have recent data
-});
+  // Ready
+})
 </script>
 
 <style>
-:root {
-  --color-primary: #007BFF;
-  --color-primary-dark: #0056b3;
-  --color-primary-50: #eff6ff;
-}
-.bg-primary { background-color: var(--color-primary); }
-.bg-primary-dark { background-color: var(--color-primary-dark); }
-.bg-primary-50 { background-color: var(--color-primary-50); }
-.text-primary { color: var(--color-primary); }
-.border-primary { border-color: var(--color-primary); }
-.focus\:ring-primary:focus { --tw-ring-color: var(--color-primary); }
-.focus\:border-primary:focus { border-color: var(--color-primary); }
-.hover\:bg-primary-dark:hover { background-color: var(--color-primary-dark); }
+/* Tailwind already assumed in project */
 </style>
